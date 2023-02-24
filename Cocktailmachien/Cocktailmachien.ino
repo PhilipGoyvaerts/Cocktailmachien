@@ -17,13 +17,12 @@ int buttonD5 = 14;
 int buttonD6 = 12;
 int outputD7 = 13;
 int outputD8 = 15;
-
-
-//D7=13
+#define RelayOn   0
+#define RelayOff  1
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Test setup");
+  Serial.println("Opstart cocktailmachien");
 
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
@@ -35,6 +34,8 @@ void setup() {
   pinMode(buttonD6, INPUT);    // sets pin as input
   pinMode(outputD7, OUTPUT);
   pinMode(outputD8, OUTPUT);
+
+  DrawBase();
 }
 
 void TekenTekst(int getal, int milis) {
@@ -50,34 +51,63 @@ void TekenTekst(int getal, int milis) {
   display.setCursor(0,20);    
   display.println(F("Gin"));
   display.println(F("Tonic"));
+  display.drawRect(50, 50, 10, 10, WHITE);
 
   display.display();
 }
 
-void TekenLeeg() {
+void DrawBase() {
   display.clearDisplay();
+  display.drawTriangle(85, 10, 80, 0, 90, 0, WHITE);
+  display.drawTriangle(105, 10, 100, 0, 110, 0, WHITE);
+  display.drawLine(80, 20, 80, 60, WHITE); 
+  display.drawLine(110, 20, 110, 60, WHITE); 
+  display.drawLine(80, 60, 110, 60, WHITE); 
   display.display();
+  Serial.println("Base getekend");
 }
 
+void DrawFillLevel(int level){
+  //in:0..100%
+  //0%    :y=60
+  //100%  :y=20
+  int y;
+  int height;
+  
+  y=60-level*0,4;
+  height=level*0,4;
+  
+  display.fillRect(80,y,30,height, WHITE);
+  display.display();
+  Serial.print("Fill level: ");
+  Serial.println(level);
+  Serial.print("y: ");
+  Serial.println(y);
+  Serial.print("height: ");
+  Serial.println(height);
+}
 
 void loop() {
 
-   digitalWrite (outputD8, 1);
-      
-  Serial.println("Test");
+   digitalWrite (outputD8, RelayOff);
+
     if (digitalRead(buttonD4) == HIGH) {
-      TekenTekst (4,0);
-      digitalWrite (outputD7, 0);
+     // TekenTekst (4,0);
+      DrawFillLevel(20);
+      digitalWrite (outputD7, RelayOn);
    }
    else if (digitalRead(buttonD5) == HIGH){
-      TekenTekst(5,0);
+     // TekenTekst(5,0);
+      DrawFillLevel(66);
+      digitalWrite (outputD8, RelayOn);
    }
    else if (digitalRead(buttonD6) == HIGH){
-      TekenTekst(6,0);
+      //TekenTekst(6,0);
+      DrawFillLevel(100);
    }
    else {
-      TekenLeeg();
-      digitalWrite (outputD7, 1);
+      digitalWrite (outputD7, RelayOff);
+      digitalWrite (outputD8, RelayOff);
    }
 
 }
