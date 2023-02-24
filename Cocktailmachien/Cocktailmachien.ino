@@ -20,6 +20,13 @@ int outputD8 = 15;
 #define RelayOn   0
 #define RelayOff  1
 
+bool blnButtonD4Last;//check flank
+bool blnButtonD5Last;//check flank
+bool blnButtonD6Last;//check flank
+bool blnButtonD4PosFlank;
+bool blnButtonD5PosFlank;
+bool blnButtonD6PosFlank;
+
 void setup() {
   Serial.begin(115200);
   Serial.println("Opstart cocktailmachien");
@@ -73,10 +80,18 @@ void DrawFillLevel(int level){
   //100%  :y=20
   int y;
   int height;
+
+  if (level<0) {
+    level=0;
+  }
+  if (level>100) {
+    level=100;
+  }
   
-  y=60-level*0,4;
-  height=level*0,4;
-  
+  y=60-(level*40/100);
+  height=level*40/100;
+
+  DrawBase();
   display.fillRect(80,y,30,height, WHITE);
   display.display();
   Serial.print("Fill level: ");
@@ -87,27 +102,52 @@ void DrawFillLevel(int level){
   Serial.println(height);
 }
 
+void IOMirror(){
+  if ((digitalRead(buttonD4) == HIGH) && (!blnButtonD4Last)) {
+    blnButtonD4PosFlank = true;
+  }
+  else {
+    blnButtonD4PosFlank = false;
+  }
+
+  if ((digitalRead(buttonD5) == HIGH) && (!blnButtonD5Last)) {
+    blnButtonD5PosFlank = true;
+  }
+  else {
+    blnButtonD5PosFlank = false;
+  }
+
+  if ((digitalRead(buttonD6) == HIGH) && (!blnButtonD6Last)) {
+    blnButtonD6PosFlank = true;
+  }
+  else {
+    blnButtonD6PosFlank = false;
+  }
+
+  blnButtonD4Last = (digitalRead(buttonD4) == HIGH);
+  blnButtonD5Last = (digitalRead(buttonD5) == HIGH);
+  blnButtonD6Last = (digitalRead(buttonD6) == HIGH);
+}
+
 void loop() {
-
-   digitalWrite (outputD8, RelayOff);
-
-    if (digitalRead(buttonD4) == HIGH) {
-     // TekenTekst (4,0);
+  
+  IOMirror(); //simplify IO
+  
+  if (blnButtonD4PosFlank) {
       DrawFillLevel(20);
       digitalWrite (outputD7, RelayOn);
    }
-   else if (digitalRead(buttonD5) == HIGH){
-     // TekenTekst(5,0);
+   else if (blnButtonD5PosFlank) {
       DrawFillLevel(66);
       digitalWrite (outputD8, RelayOn);
    }
-   else if (digitalRead(buttonD6) == HIGH){
-      //TekenTekst(6,0);
+   else if (blnButtonD6PosFlank) {
       DrawFillLevel(100);
    }
    else {
       digitalWrite (outputD7, RelayOff);
       digitalWrite (outputD8, RelayOff);
    }
+
 
 }
