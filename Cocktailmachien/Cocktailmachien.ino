@@ -3,7 +3,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-//voor de GFX
+//For the GFX
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
@@ -12,6 +12,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define LOGO_HEIGHT   64
 #define LOGO_WIDTH    16
 
+//IO
 int buttonD4 = 2;                      
 int buttonD5 = 14;
 int buttonD6 = 12;
@@ -19,13 +20,23 @@ int outputD7 = 13;
 int outputD8 = 15;
 #define RelayOn   0
 #define RelayOff  1
-
 bool blnButtonD4Last;//check flank
 bool blnButtonD5Last;//check flank
 bool blnButtonD6Last;//check flank
 bool blnButtonD4PosFlank;
 bool blnButtonD5PosFlank;
 bool blnButtonD6PosFlank;
+
+//Timers
+unsigned long StartMillisD4;
+unsigned long StartMillisD5;
+unsigned long CurrentMillis;
+unsigned long StartMillis2HzPulse;
+bool TwoHzPulse;
+
+//Dosing memory
+bool DosingStartedD4;
+bool DosingStartedD5;
 
 void setup() {
   Serial.begin(115200);
@@ -43,6 +54,9 @@ void setup() {
   pinMode(outputD8, OUTPUT);
 
   DrawBase();
+  
+  StartMillis2HzPulse = millis();
+  CurrentMillis = millis();
 }
 
 void TekenTekst(int getal, int milis) {
@@ -129,25 +143,67 @@ void IOMirror(){
   blnButtonD6Last = (digitalRead(buttonD6) == HIGH);
 }
 
-void loop() {
+int DosingActiveD4(unsigned long PresetTime){
+  unsigned long ElapsedTime = (CurrentMillis - StartMillisD4);
   
+  Serial.print("StartMillis: ");
+  Serial.println(StartMillisD4);
+  Serial.print("CurrentMillis: ");
+  Serial.println(CurrentMillis);
+  Serial.print("CurrentMillis: ");
+  Serial.println(PresetTime);
+  Serial.print("ElapsedTime: ");
+  Serial.println(ElapsedTime);
+  
+  if (ElapsedTime <= PresetTime){
+    Serial.print("ElapsedTime in de if: ");
+    Serial.println((ElapsedTime*100)/PresetTime);
+    return ((ElapsedTime*100)/PresetTime);
+  }
+  else {
+    DosingStartedD4 = false;
+    return (100);
+  }
+}
+
+void System(){
+  
+  if (CurrentMillis - StartMillis2HzPulse >= 500){
+    StartMillis2HzPulse = millis();
+    TwoHzPulse = true;
+  }
+  else {
+    TwoHzPulse = false;
+  }
+}
+
+void loop() {
+
+  CurrentMillis = millis();
   IOMirror(); //simplify IO
+  System ();
   
   if (blnButtonD4PosFlank) {
-      DrawFillLevel(20);
-      digitalWrite (outputD7, RelayOn);
+//      DrawFillLevel(20);
+//      digitalWrite (outputD7, RelayOn);
+  DosingStartedD4 = true;
+  StartMillisD4 = millis();
    }
    else if (blnButtonD5PosFlank) {
-      DrawFillLevel(66);
+      DrawFillLevel(0);
       digitalWrite (outputD8, RelayOn);
    }
    else if (blnButtonD6PosFlank) {
-      DrawFillLevel(100);
+      DrawFillLevel(10);
    }
    else {
       digitalWrite (outputD7, RelayOff);
       digitalWrite (outputD8, RelayOff);
    }
 
-
+if ((DosingStartedD4) && (TwoHzPulse)){
+  Serial.print("DosingStarted: ");
+  Serial.println("Yup");
+  DrawFillLevel(DosingActiveD4(3000));
+}
 }
