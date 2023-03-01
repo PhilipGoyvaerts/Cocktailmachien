@@ -59,21 +59,13 @@ void setup() {
   CurrentMillis = millis();
 }
 
-void TekenTekst(int getal, int milis) {
-  display.clearDisplay();
-
+void DrawText() {
   display.setCursor(0,0);    
   display.setTextSize(1);             // Draw 2X-scale text
   display.setTextColor(SSD1306_WHITE); 
-  display.print(F("Drukknop: ")); 
+  display.println(F("GIN")); 
   display.print(getal); 
-  display.println(F(" is ingedrukt")); 
-  display.setTextSize(2); 
-  display.setCursor(0,20);    
-  display.println(F("Gin"));
-  display.println(F("Tonic"));
-  display.drawRect(50, 50, 10, 10, WHITE);
-
+  display.println(F("TONIC")); 
   display.display();
 }
 
@@ -87,6 +79,21 @@ void DrawBase() {
   display.display();
   Serial.println("Base getekend");
 }
+
+void DrawDosingActiveD4() {
+  display.fillTriangle(85, 10, 80, 0, 90, 0, WHITE);  
+  display.drawLine(85, 10, 85, 60, WHITE); 
+  display.display();
+  Serial.println("Dosing1 getekend");
+}
+
+void DrawDosingStoppedD4() {
+  display.fillTriangle(85, 10, 80, 0, 90, 0, BLACK);
+  display.drawTriangle(85, 10, 80, 0, 90, 0, WHITE);  
+  display.display();
+  Serial.println("Dosing1 leeg");
+}
+
 
 void DrawFillLevel(int level){
   //in:0..100%
@@ -105,7 +112,7 @@ void DrawFillLevel(int level){
   y=60-(level*40/100);
   height=level*40/100;
 
-  DrawBase();
+ // DrawBase();
   display.fillRect(80,y,30,height, WHITE);
   display.display();
   Serial.print("Fill level: ");
@@ -189,21 +196,25 @@ void loop() {
   DosingStartedD4 = true;
   StartMillisD4 = millis();
    }
-   else if (blnButtonD5PosFlank) {
-      DrawFillLevel(0);
+   if (blnButtonD5PosFlank) {
+      DrawBase();
       digitalWrite (outputD8, RelayOn);
    }
-   else if (blnButtonD6PosFlank) {
-      DrawFillLevel(10);
+   if (blnButtonD6PosFlank) {
+      DrawBase();
    }
    else {
-      digitalWrite (outputD7, RelayOff);
       digitalWrite (outputD8, RelayOff);
    }
 
-if ((DosingStartedD4) && (TwoHzPulse)){
-  Serial.print("DosingStarted: ");
-  Serial.println("Yup");
-  DrawFillLevel(DosingActiveD4(3000));
-}
+  if (DosingStartedD4){// && (TwoHzPulse)){
+    Serial.print("DosingStarted: ");
+    Serial.println("Yup");
+    DrawFillLevel(DosingActiveD4(3000));
+    DrawDosingActiveD4();
+  }
+  else {
+    DrawDosingStoppedD4();
+    digitalWrite (outputD7, RelayOff);
+  } 
 }
