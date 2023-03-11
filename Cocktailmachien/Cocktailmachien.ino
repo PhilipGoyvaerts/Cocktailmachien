@@ -64,7 +64,7 @@ void DrawText() {
   display.setTextSize(1);             // Draw 2X-scale text
   display.setTextColor(SSD1306_WHITE); 
   display.println(F("GIN")); 
-  display.print(getal); 
+  display.print("getal"); 
   display.println(F("TONIC")); 
   display.display();
 }
@@ -78,6 +78,23 @@ void DrawBase() {
   display.drawLine(80, 60, 110, 60, WHITE); 
   display.display();
   Serial.println("Base getekend");
+}
+
+void DrawDosingPumps(int x, int state){
+//x=startposition x coord
+//state=active/idle
+  if (state==0){
+    display.fillTriangle(x, 10, x-5, 0, x+5, 0, BLACK);
+    display.display();
+    display.drawTriangle(x, 10, x-5, 0, x+5, 0, WHITE);
+    display.display();
+  }
+  else if (state==1){
+    display.fillTriangle(x, 10, x-5, 0, x+5, 0, WHITE);
+    display.display();
+  }
+
+
 }
 
 void DrawDosingActiveD4() {
@@ -211,10 +228,11 @@ void loop() {
     Serial.print("DosingStarted: ");
     Serial.println("Yup");
     DrawFillLevel(DosingActiveD4(3000));
-    DrawDosingActiveD4();
+   // DrawDosingActiveD4();
   }
   else {
-    DrawDosingStoppedD4();
+   // DrawDosingStoppedD4();
     digitalWrite (outputD7, RelayOff);
   } 
+DrawDosingPumps(80,DosingStartedD4);
 }
