@@ -17,7 +17,7 @@ int buttonD4 = 2;
 int buttonD5 = 14;
 int buttonD6 = 12;
 int outputD7 = 13;
-int outputD8 = 15;
+int outputD3 = 0;
 #define RelayOn   0
 #define RelayOff  1
 bool blnButtonD4Status;//check status
@@ -66,10 +66,10 @@ void setup() {
   pinMode(buttonD5, INPUT);    // sets pin as input
   pinMode(buttonD6, INPUT);    // sets pin as input
   pinMode(outputD7, OUTPUT);
-  pinMode(outputD8, OUTPUT);
-  display.setTextColor(WHITE, BLACK);
+  pinMode(outputD3, OUTPUT);
+  digitalWrite (outputD7, RelayOff); 
+  digitalWrite (outputD3, RelayOff); 
   DrawBase();
-  
   CurrentMillis = millis();
 }
 
@@ -308,10 +308,10 @@ void loop() {
   } 
   if (DosingStartedTonic){;
     LevelTonic = DosingTimerTonic(RecalcTimerVal(BaseTimeTonic,RatioTonic));
-    digitalWrite (outputD8, RelayOn);
+    digitalWrite (outputD3, RelayOn);
   }
   else {
-    digitalWrite (outputD8, RelayOff);
+    digitalWrite (outputD3, RelayOff);
   } 
   if ((DosingStartedGin) || (DosingStartedTonic)) { //OR
     DrawFillLevel((LevelGin + LevelTonic)/2);
