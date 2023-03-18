@@ -328,7 +328,7 @@ void loop() {
   DosingStepper();
 
   if (DosingStep == 1) {
-    TransStep1 = ((!DosingStartedGin) && (!DosingStartedGin));
+    TransStep1 = ((!DosingStartedGin) && (!DosingStartedTonic));
   }
   
 }
