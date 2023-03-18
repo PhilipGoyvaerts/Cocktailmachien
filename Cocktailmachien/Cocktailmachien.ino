@@ -48,10 +48,10 @@ bool ResetStepper;
 //Recipe
 int RatioGin = 20;
 int LevelGin = 0;
-int BaseTimeGin = 9000; //how many ms to dose for a 50/50 mix?
+int BaseTimeGin = 33750; //how many ms to dose for a 50/50 mix?
 int RatioTonic = 80;
 int LevelTonic = 0;
-int BaseTimeTonic = 4000; //how many ms to dose for a 50/50 mix?
+int BaseTimeTonic = 9400; //how many ms to dose for a 50/50 mix?
 
 void setup() {
   Serial.begin(115200);
@@ -285,6 +285,10 @@ void loop() {
   
    if (blnButtonD4PosFlank) {
       TransStep0 = true;  
+      if (DosingStep = 2) {
+        ResetStepper = true;
+        DrawBase();
+      }
    }
    if (blnButtonD5PosFlank) {
       ChangeRecipeRatio(true,false);
@@ -316,8 +320,10 @@ void loop() {
   if ((DosingStartedGin) || (DosingStartedTonic)) { //OR
     DrawFillLevel((LevelGin + LevelTonic)/2);
   }
-  DrawDosingPumps(85,DosingStartedGin);
-  DrawDosingPumps(105,DosingStartedTonic);
+  DrawDosingPumps(105,DosingStartedGin);
+  DrawDosingPumps(85,DosingStartedTonic);
   DrawText();
   DosingStepper();
+
+  TransStep1 = ((!DosingStartedGin) && (!DosingStartedGin));
 }
