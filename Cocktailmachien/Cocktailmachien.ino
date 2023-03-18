@@ -284,8 +284,10 @@ void loop() {
   IOMirror(); //simplify IO
   
    if (blnButtonD4PosFlank) {
-      TransStep0 = true;  
-      if (DosingStep = 2) {
+      if (DosingStep == 0) {
+        TransStep0 = true;    
+      }
+      if (DosingStep == 2) {
         ResetStepper = true;
         DrawBase();
       }
@@ -310,7 +312,7 @@ void loop() {
   else {
     digitalWrite (outputD7, RelayOff);
   } 
-  if (DosingStartedTonic){;
+  if (DosingStartedTonic){
     LevelTonic = DosingTimerTonic(RecalcTimerVal(BaseTimeTonic,RatioTonic));
     digitalWrite (outputD3, RelayOn);
   }
@@ -325,5 +327,8 @@ void loop() {
   DrawText();
   DosingStepper();
 
-  TransStep1 = ((!DosingStartedGin) && (!DosingStartedGin));
+  if (DosingStep == 1) {
+    TransStep1 = ((!DosingStartedGin) && (!DosingStartedGin));
+  }
+  
 }
