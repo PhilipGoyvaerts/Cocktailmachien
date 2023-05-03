@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <EEPROM.h>
 
 //For the GFX
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -44,6 +45,7 @@ bool TransStep1;
 bool TransStep2;
 bool TransStep3;
 bool ResetStepper;
+int CountFinishedDrinks;
 
 //Recipe
 int RatioGin = 20;
@@ -71,6 +73,8 @@ void setup() {
   digitalWrite (outputD3, RelayOff); 
   DrawBase();
   CurrentMillis = millis();
+  EEPROM.begin(sizeof(CountFinishedDrinks));            //initialize eeprom memory with nr of bytes in datatype
+  EEPROM.get(0, CountFinishedDrinks);                   //read data from eeprom and cast it into variable
 }
 
 void DrawText() {
@@ -89,9 +93,11 @@ void DrawText() {
   display.setTextColor(WHITE, BLACK);
   display.print(RatioTonic); 
   display.println(F("%")); 
-  display.print(F("Step: ")); 
+ // display.print(F("Step: ")); 
+  display.print(F("Glas: "));
   display.setTextColor(WHITE, BLACK);
-  display.print(DosingStep); 
+  display.print(CountFinishedDrinks); 
+  //display.print(DosingStep); 
   display.display();
 }
 
@@ -184,7 +190,11 @@ int DosingTimerGin(unsigned long PresetTime){
   Serial.print("ElapsedTime: ");
   Serial.println(ElapsedTime);
   
-  if (ElapsedTime <= PresetTime){
+  if (PresetTime==0){
+    DosingStartedGin = false;
+    return (100);
+  }
+  else if (ElapsedTime <= PresetTime){
     Serial.print("ElapsedTime in de if: ");
     Serial.println((ElapsedTime*100)/PresetTime);
     return ((ElapsedTime*100)/PresetTime);
@@ -206,8 +216,12 @@ int DosingTimerTonic(unsigned long PresetTime){
   Serial.println(PresetTime);
   Serial.print("ElapsedTime: ");
   Serial.println(ElapsedTime);
-  
-  if (ElapsedTime <= PresetTime){
+
+  if (PresetTime==0){
+    DosingStartedTonic = false;
+    return (100);
+  }
+  else if (ElapsedTime <= PresetTime){
     Serial.print("ElapsedTime in de if: ");
     Serial.println((ElapsedTime*100)/PresetTime);
     return ((ElapsedTime*100)/PresetTime);
@@ -220,17 +234,17 @@ int DosingTimerTonic(unsigned long PresetTime){
 
 void DosingStepper(){
   if (ResetStepper){
-    DosingStep = 0;
+    DosingStep = 0;                                 //idle
   }
   if ((DosingStep==0) && (TransStep0)){
-    DosingStep = 1;
+    DosingStep = 1;                                 //dosing started
     DosingStartedGin = true;
     DosingStartedTonic = true;
     StartMillisGin = millis();
     StartMillisTonic = millis();
   } 
   if ((DosingStep==1) && (TransStep1)){
-    DosingStep = 2;
+    DosingStep = 2;                                 //dosing done (autoreset)
   }
   if ((DosingStep==2) && (TransStep2)){
     DosingStep = 3;
@@ -244,11 +258,11 @@ void DosingStepper(){
 
 void ChangeRecipeRatio(bool up, bool down){
   if (up){
-    RatioGin = RatioGin + 10;
+    RatioGin = RatioGin + 5;
     Serial.println("changeRecipeRatio cond1");
   }
   if (down){
-    RatioGin = RatioGin - 10;
+    RatioGin = RatioGin - 5;
     Serial.println("changeRecipeRatio cond2");
   }
   if (RatioGin >= 100){
@@ -281,22 +295,31 @@ int RecalcTimerVal(int BaseTime, int Ratio){
 void loop() {
 
   CurrentMillis = millis();
-  IOMirror(); //simplify IO
+  IOMirror();                                        //simplify IO
   
-   if (blnButtonD4PosFlank) {
+   if (blnButtonD4PosFlank) {                        // Start button
       if (DosingStep == 0) {
         TransStep0 = true;    
       }
-      if (DosingStep == 2) {
+      else if (DosingStep == 1) {
+        ResetStepper = true;
+        DosingStartedTonic = false;
+        DosingStartedGin = false;   
+        DrawBase();
+      }
+      else if (DosingStep == 2) {
         ResetStepper = true;
         DrawBase();
       }
    }
-   if (blnButtonD5PosFlank) {
-      ChangeRecipeRatio(true,false);
-   }
-   if (blnButtonD6PosFlank) {
-      ChangeRecipeRatio(false,true);
+   
+   if (DosingStep == 0) {                             //only change ratio while idle
+      if (blnButtonD5PosFlank) {                      // + button
+        ChangeRecipeRatio(true,false);
+      }
+      if (blnButtonD6PosFlank) {                      // - button
+        ChangeRecipeRatio(false,true);
+      }
    }
    
    if ((blnButtonD5Status) && (blnButtonD6Status)) {
@@ -304,30 +327,42 @@ void loop() {
       DrawBase();
       RatioGin = 20;
       RatioTonic = 80;
+      CountFinishedDrinks = 0;
    }
+   
   if (DosingStartedGin){
-    LevelGin = DosingTimerGin(RecalcTimerVal(BaseTimeGin,RatioGin));
+    LevelGin = DosingTimerGin(RecalcTimerVal(BaseTimeGin,RatioGin));          //Here the actual dosing timer is started
     digitalWrite (outputD7, RelayOn);
   }
   else {
     digitalWrite (outputD7, RelayOff);
   } 
+  
   if (DosingStartedTonic){
-    LevelTonic = DosingTimerTonic(RecalcTimerVal(BaseTimeTonic,RatioTonic));
+    LevelTonic = DosingTimerTonic(RecalcTimerVal(BaseTimeTonic,RatioTonic));  //Here the actual dosing timer is started
     digitalWrite (outputD3, RelayOn);
   }
   else {
     digitalWrite (outputD3, RelayOff);
-  } 
-  if ((DosingStartedGin) || (DosingStartedTonic)) { //OR
+  }  
+  if ((DosingStartedGin) || (DosingStartedTonic)) {       //   || = OR
     DrawFillLevel((LevelGin + LevelTonic)/2);
   }
+  
+  if (DosingStep == 2) {                                  //Autoreset when done
+    CountFinishedDrinks += 1;                             
+    EEPROM.put(0, CountFinishedDrinks);                   //write data to array in ram 
+    EEPROM.commit(); 
+    ResetStepper = true;
+    DrawBase();
+  }
+  
   DrawDosingPumps(105,DosingStartedGin);
   DrawDosingPumps(85,DosingStartedTonic);
   DrawText();
   DosingStepper();
 
-  if (DosingStep == 1) {
+  if (DosingStep == 1) {                                  //Needs to be checked after calling DosingStepper();
     TransStep1 = ((!DosingStartedGin) && (!DosingStartedTonic));
   }
   
